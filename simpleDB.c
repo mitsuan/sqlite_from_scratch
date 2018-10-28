@@ -316,6 +316,9 @@ void* cursor_value(Cursor* cursor)
 	return page+byte_offset;	
 }
 
+Cursor* table_start(Table*);
+Cursor* table_end(Table*);
+
 
 ExecuteResult execute_insert(Statement* statement, Table* table)
 {
@@ -325,20 +328,35 @@ ExecuteResult execute_insert(Statement* statement, Table* table)
 	}
 	
 	Row* row_to_insert = &(statement->row_to_insert);
+
+	Cursor* cursor = table_end(table);
 	
-	serialize_row(row_to_insert,row_slot(table,table->num_rows));
+	serialize_row(row_to_insert,cursor_value(cursor));
 	table->num_rows+=1;
+
+	free(cursor);
 	
 	return EXECUTE_SUCCESS;
 }
 
 ExecuteResult execute_select(Statement* statement, Table* table)
 {
+	Cursor* cursor = table_start(table);
+
 	Row row;
-	for(uint32_t i=0;i<table->num_rows;i++)
+
+	// for(uint32_t i=0;i<table->num_rows;i++)
+	// {
+	// 	deserialize_row(row_slot(table,i),&row);
+	// 	print_row(&row);
+	// }
+
+	while(!(cursor->end_of_table))
 	{
-		deserialize_row(row_slot(table,i),&row);
+		deserialize_row(cursor_value(cursor),&row);
 		print_row(&row);
+		cursor_advance(cursor);
+
 	}
 
 	return EXECUTE_SUCCESS;
